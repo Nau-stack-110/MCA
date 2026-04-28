@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { AppButton } from "../../components/ui/AppButton";
 import { Card } from "../../components/ui/Card";
 import { PriorityBadge } from "../../components/ui/PriorityBadge";
 import { AiResult, Severity } from "../../types";
-import { symptomsAnalysis } from "../../data/mockData";
+import { ambulanceFleet, hospitals, symptomsAnalysis } from "../../data/mockData";
 
 type Props = {
   openChatbot: () => void;
@@ -31,6 +31,16 @@ const symptomChoices = [
   { id: "maux", label: "Maux de tete" },
 ];
 
+type Operator = "Telma" | "Orange" | "Airtel";
+
+const operatorCodes: Record<Operator, string> = {
+  Telma: "*147*911#",
+  Orange: "*303*911#",
+  Airtel: "*111*911#",
+};
+
+const ambulanceHotline = "+261340000911";
+
 export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
   const pulse = useRef(new Animated.Value(1)).current;
   const [symptoms, setSymptoms] = useState("Douleur thoracique avec gene respiratoire depuis 15 minutes.");
@@ -38,6 +48,11 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AiResult | null>(null);
   const [ambulanceRequested, setAmbulanceRequested] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState<(typeof hospitals)[number] | null>(null);
+  const [selectedAmbulance, setSelectedAmbulance] = useState<(typeof ambulanceFleet)[number] | null>(null);
+  const [isSearchingEmergency, setIsSearchingEmergency] = useState(false);
+  const [selectedOperator, setSelectedOperator] = useState<Operator>("Telma");
+  const [emergencyModalVisible, setEmergencyModalVisible] = useState(false);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -90,34 +105,50 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
     }, 1300);
   };
 
+  const triggerEmergency = () => {
+    setEmergencyModalVisible(true);
+    setIsSearchingEmergency(true);
+    setAmbulanceRequested(true);
+
+    setTimeout(() => {
+      const nearestFreeHospital =
+        hospitals.find((item) => item.availability === "Disponible") ||
+        hospitals.find((item) => item.availability === "Limite") ||
+        null;
+
+      const dispatchableAmbulance = ambulanceFleet.find((item) => item.status !== "En route") || ambulanceFleet[0] || null;
+
+      setSelectedHospital(nearestFreeHospital);
+      setSelectedAmbulance(dispatchableAmbulance);
+      setIsSearchingEmergency(false);
+    }, 1400);
+  };
+
+  const callAmbulance = async () => {
+    const phoneUrl = Platform.OS === "ios" ? `telprompt:${ambulanceHotline}` : `tel:${ambulanceHotline}`;
+
+    try {
+      await Linking.openURL(phoneUrl);
+    } catch {
+      Alert.alert("Appel indisponible", "Testez sur un vrai telephone avec une application d'appel.");
+    }
+  };
+
+  const callWithOperatorUssd = async () => {
+    const ussdCode = operatorCodes[selectedOperator];
+    const sanitizedUssd = ussdCode.replace(/#/g, "%23");
+    const ussdUrl = `tel:${sanitizedUssd}`;
+
+    try {
+      await Linking.openURL(ussdUrl);
+    } catch {
+      Alert.alert("USSD indisponible", "Le code USSD fonctionne uniquement sur mobile reel avec carte SIM.");
+    }
+  };
+
   return (
     <View className="flex-1 bg-[#070b12]">
       <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 120 }}>
-        <View className="rounded-[28px] border border-cyan-400/10 bg-[#09111b] px-5 py-5">
-          <View className="flex-row items-start justify-between">
-            <View className="flex-1 pr-4">
-              <Text className="text-xs uppercase tracking-[2px] text-cyan-300">Tableau patient</Text>
-              <Text className="mt-2 text-3xl font-bold text-white">Suivi medical intelligent</Text>
-              <Text className="mt-2 text-sm leading-6 text-slate-400">
-                Triage, urgence et aide conversationnelle au meme endroit.
-              </Text>
-            </View>
-            <View className="rounded-2xl border border-white/10 bg-white/5 p-3">
-              <Ionicons name="pulse" size={24} color="#67e8f9" />
-            </View>
-          </View>
-
-          <View className="mt-5 flex-row gap-3">
-            <View className="flex-1 rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3">
-              <Text className="text-xs uppercase tracking-[1.5px] text-emerald-200">Statut</Text>
-              <Text className="mt-2 text-lg font-semibold text-white">Stable</Text>
-            </View>
-            <View className="flex-1 rounded-2xl border border-amber-400/15 bg-amber-400/10 px-4 py-3">
-              <Text className="text-xs uppercase tracking-[1.5px] text-amber-100">Dernier triage</Text>
-              <Text className="mt-2 text-lg font-semibold text-white">{result ? "Actualise" : "En attente"}</Text>
-            </View>
-          </View>
-        </View>
 
         <View className="mt-4 flex-row gap-3">
           <Card className="flex-1 border-red-500/20 bg-[#190d12]">
@@ -135,11 +166,15 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
             <Text className="mt-1 text-sm text-slate-400">Acces prioritaire ambulance.</Text>
             <View className="mt-4">
               <AppButton
-                label={ambulanceRequested ? "Ambulance demandee" : "Alerter"}
-                onPress={() => setAmbulanceRequested(true)}
+                label={ambulanceRequested ? "Relancer alerte" : "Alerter"}
+                onPress={triggerEmergency}
                 variant="danger"
               />
             </View>
+
+            {ambulanceRequested ? (
+              <Text className="mt-3 text-xs text-red-100">Alerte enregistree. Ouvrez le detail pour appeler.</Text>
+            ) : null}
           </Card>
 
           <Card className="flex-1">
@@ -236,6 +271,62 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
           <Ionicons name="chatbubble-ellipses" size={28} color="#ecfeff" />
         </Pressable>
       </Animated.View>
+
+      <Modal visible={emergencyModalVisible} transparent animationType="slide" onRequestClose={() => setEmergencyModalVisible(false)}>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[78%] rounded-t-3xl bg-[#0f1722] p-5">
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="text-lg font-bold text-white">Alerte ambulance</Text>
+              <Pressable onPress={() => setEmergencyModalVisible(false)} className="rounded-full bg-white/10 px-3 py-1">
+                <Text className="text-white">Fermer</Text>
+              </Pressable>
+            </View>
+
+            {isSearchingEmergency ? (
+              <View className="mt-3 flex-row items-center gap-2 rounded-xl bg-white/5 px-3 py-3">
+                <ActivityIndicator size="small" color="#fca5a5" />
+                <Text className="text-sm text-red-100">Recherche de l&apos;hopital le plus proche et disponible...</Text>
+              </View>
+            ) : null}
+
+            {!isSearchingEmergency && selectedHospital && selectedAmbulance ? (
+              <View className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                <Text className="text-xs uppercase tracking-[1px] text-slate-400">Affectation urgence</Text>
+                <Text className="mt-2 text-sm font-semibold text-white">Hopital: {selectedHospital.name}</Text>
+                <Text className="mt-1 text-xs text-slate-300">Distance: {selectedHospital.distance} • ETA: {selectedHospital.eta || "N/A"}</Text>
+                <Text className="mt-1 text-xs text-slate-300">Ambulance: {selectedAmbulance.label} • {selectedAmbulance.eta}</Text>
+                <Text className="mt-1 text-xs text-slate-300">Numero: {ambulanceHotline}</Text>
+
+                <View className="mt-3 flex-row gap-2">
+                  <Pressable onPress={callAmbulance} className="flex-1 flex-row items-center justify-center rounded-lg bg-emerald-600 px-3 py-3">
+                    <Ionicons name="call" size={16} color="#ffffff" />
+                    <Text className="ml-2 font-semibold text-white">Appeler</Text>
+                  </Pressable>
+                  <Pressable onPress={callWithOperatorUssd} className="flex-1 items-center justify-center rounded-lg bg-slate-700 px-3 py-3">
+                    <Text className="font-semibold text-white">USSD</Text>
+                  </Pressable>
+                </View>
+
+                <View className="mt-3 flex-row gap-2">
+                  {(["Telma", "Orange", "Airtel"] as Operator[]).map((operator) => {
+                    const active = selectedOperator === operator;
+                    return (
+                      <Pressable
+                        key={operator}
+                        onPress={() => setSelectedOperator(operator)}
+                        className={`rounded-lg border px-3 py-2 ${active ? "border-cyan-300 bg-cyan-300/15" : "border-white/20 bg-transparent"}`}
+                      >
+                        <Text className={`${active ? "text-cyan-100" : "text-slate-200"}`}>{operator}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Text className="mt-2 text-xs text-slate-400">Code {selectedOperator}: {operatorCodes[selectedOperator]}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
