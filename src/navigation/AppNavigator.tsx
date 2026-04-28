@@ -1,6 +1,7 @@
-import { NavigationContainer } from "@react-navigation/native";
+import { DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { RegisterScreen } from "../screens/auth/RegisterScreen";
@@ -21,9 +22,44 @@ type AuthMode = "login" | "register";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const navTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: "#f97316",
+    background: "#070b12",
+    card: "#0f1722",
+    text: "#ffffff",
+    border: "#1e293b",
+    notification: "#dc2626",
+  },
+};
+
 function PatientTabs({ openChatbot, openVideoCall }: { openChatbot: () => void; openVideoCall: () => void }) {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: "#2563eb" }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#f97316",
+        tabBarInactiveTintColor: "#64748b",
+        tabBarStyle: {
+          backgroundColor: "#0f1722",
+          borderTopColor: "#1e293b",
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 10,
+        },
+        tabBarIcon: ({ color, size }) => {
+          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Accueil: "home",
+            Hopitaux: "map",
+            Ambulance: "car",
+            Historique: "document-text",
+          };
+          return <Ionicons name={icons[route.name]} size={size} color={color} />;
+        },
+      })}
+    >
       <Tab.Screen name="Accueil">
         {() => <PatientHomeScreen openChatbot={openChatbot} openVideoCall={openVideoCall} />}
       </Tab.Screen>
@@ -36,7 +72,29 @@ function PatientTabs({ openChatbot, openVideoCall }: { openChatbot: () => void; 
 
 function DoctorTabs({ openPatient }: { openPatient: (id: string) => void }) {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: "#2563eb" }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#f97316",
+        tabBarInactiveTintColor: "#64748b",
+        tabBarStyle: {
+          backgroundColor: "#0f1722",
+          borderTopColor: "#1e293b",
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 10,
+        },
+        tabBarIcon: ({ color, size }) => {
+          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Dashboard: "pulse",
+            "Video Call": "videocam",
+            Notifications: "notifications",
+            Urgence: "warning",
+          };
+          return <Ionicons name={icons[route.name]} size={size} color={color} />;
+        },
+      })}
+    >
       <Tab.Screen name="Dashboard">{() => <DoctorDashboardScreen openPatient={openPatient} />}</Tab.Screen>
       <Tab.Screen name="Video Call" component={VideoCallScreen} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
@@ -70,7 +128,7 @@ export function AppNavigator() {
   }, [authMode]);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Auth">{() => authScreen}</Stack.Screen>

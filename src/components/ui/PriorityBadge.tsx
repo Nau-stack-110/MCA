@@ -6,21 +6,27 @@ type PriorityBadgeProps = {
 };
 
 const viewStyles: Record<Severity, string> = {
-  low: "bg-emerald-100",
-  medium: "bg-amber-100",
-  critical: "bg-red-100",
+  low: "border border-emerald-400/30 bg-emerald-500/15",
+  medium: "border border-orange-400/30 bg-orange-500/15",
+  critical: "border border-red-400/30 bg-red-500/15",
 };
 
 const textStyles: Record<Severity, string> = {
-  low: "text-emerald-700",
-  medium: "text-amber-700",
-  critical: "text-red-700",
+  low: "text-emerald-300",
+  medium: "text-orange-300",
+  critical: "text-red-300",
+};
+
+const labels: Record<Severity, string> = {
+  low: "Normal",
+  medium: "Urgent",
+  critical: "Critique",
 };
 
 export function PriorityBadge({ severity }: PriorityBadgeProps) {
   return (
     <View className={`self-start rounded-full px-3 py-1 ${viewStyles[severity]}`}>
-      <Text className={`font-semibold capitalize ${textStyles[severity]}`}>{severity}</Text>
+      <Text className={`font-semibold ${textStyles[severity]}`}>{labels[severity]}</Text>
     </View>
   );
 }

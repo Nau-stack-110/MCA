@@ -8,7 +8,9 @@ type CardProps = {
 
 export function Card({ children, className = "" }: CardProps) {
   return (
-    <View className={`rounded-2xl bg-white p-4 shadow-sm shadow-slate-300 ${className}`}>
+    <View
+      className={`rounded-[24px] border border-white/10 bg-[#121923] p-4 shadow-2xl shadow-black/20 ${className}`}
+    >
       {children}
     </View>
   );

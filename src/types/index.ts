@@ -10,7 +10,8 @@ export type Hospital = {
   id: string;
   name: string;
   distance: string;
-  availability: "Available" | "Busy" | "Limited";
+  availability: "Disponible" | "Sature" | "Limite";
+  eta?: string;
 };
 
 export type Consultation = {
@@ -28,6 +29,9 @@ export type Patient = {
   symptoms: string;
   priority: Severity;
   aiSuggestion: string;
+  location?: string;
+  waitingTime?: string;
+  ambulanceEta?: string;
 };
 
 export type AppNotification = {
@@ -35,4 +39,21 @@ export type AppNotification = {
   title: string;
   message: string;
   time: string;
+};
+
+export type BedUnit = {
+  id: string;
+  label: string;
+  total: number;
+  occupied: number;
+  openCritical: number;
+};
+
+export type AmbulanceStatus = {
+  id: string;
+  label: string;
+  status: string;
+  eta: string;
+  progress: number;
+  crew: string;
 };

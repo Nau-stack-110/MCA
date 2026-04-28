@@ -8,15 +8,15 @@ type AppButtonProps = {
 };
 
 const variantClasses = {
-  primary: "bg-blue-600",
-  danger: "bg-red-600",
-  secondary: "bg-slate-200",
+  primary: "bg-[#1d4ed8]",
+  danger: "bg-[#dc2626]",
+  secondary: "border border-white/10 bg-[#1a2230]",
 };
 
 const textClasses = {
   primary: "text-white",
   danger: "text-white",
-  secondary: "text-slate-800",
+  secondary: "text-slate-100",
 };
 
 export function AppButton({
@@ -27,7 +27,7 @@ export function AppButton({
 }: AppButtonProps) {
   return (
     <Pressable
-      className={`items-center rounded-xl px-4 py-3 ${variantClasses[variant]}`}
+      className={`items-center rounded-2xl px-4 py-4 ${variantClasses[variant]}`}
       onPress={onPress}
       disabled={loading}
     >
