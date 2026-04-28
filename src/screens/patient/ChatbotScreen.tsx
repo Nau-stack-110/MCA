@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { symptomsAnalysis } from "../../data/mockData";
 import { Severity } from "../../types";
+import { hasOpenRouterKey, requestOpenRouterChat } from "../../services/openRouter";
 
 type ChatUser = {
   _id: number;
@@ -24,6 +27,20 @@ type ChatMessage = {
   createdAt: Date;
   user: ChatUser;
 };
+
+const AI_SYSTEM_PROMPT = `
+Tu es MADA-CARE, un assistant de pre-triage medical francophone.
+Tu reponds avec empathie, clarte et concision.
+Tu n'inventes jamais un diagnostic certain.
+Si les symptomes evoquent une urgence vitale, demande immediatement d'appeler les urgences ou de consulter sans attendre.
+Structure les reponses en phrases courtes, facilement lisibles sur mobile.
+`;
+
+const QUICK_PROMPTS = [
+  "J'ai de la fievre depuis 2 jours",
+  "Je ressens une douleur thoracique",
+  "Mon enfant tousse beaucoup",
+];
 
 const BOT_USER: ChatUser = {
   _id: 2,
@@ -67,28 +84,47 @@ function buildBotReply(text: string) {
   const statusLabel =
     severity === "critical" ? "Critique" : severity === "medium" ? "Urgent" : "Normal";
 
-  return `Niveau evalue: ${statusLabel}\nAction: ${guidance.action}\nOrientation: ${guidance.specialty}`;
+  return `Niveau evalue: ${statusLabel}\nAction prioritaire: ${guidance.action}\nOrientation suggeree: ${guidance.specialty}\nSi les symptomes s'aggravent, contactez rapidement un professionnel de sante.`;
 }
 
 export function ChatbotScreen() {
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const aiEnabled = hasOpenRouterKey();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       _id: 1,
-      text: "Bonjour, je suis votre assistant medical. Decrivez vos symptomes pour une premiere orientation.",
+      text: aiEnabled
+        ? "Bonjour, je suis votre assistant sante. Decrivez vos symptomes pour une premiere orientation claire et rapide."
+        : "Bonjour, je suis votre assistant sante. Le mode intelligent n'est pas encore configure, mais je peux deja faire une premiere orientation locale.",
       createdAt: new Date(),
       user: BOT_USER,
     },
   ]);
   const [draft, setDraft] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [statusLabel, setStatusLabel] = useState(aiEnabled ? "OpenRouter actif" : "Mode local");
 
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     [messages]
   );
 
-  const onSend = useCallback(() => {
-    const trimmedDraft = draft.trim();
+  const pushBotMessage = useCallback((text: string) => {
+    const botMessage: ChatMessage = {
+      _id: Date.now() + Math.floor(Math.random() * 1000),
+      text,
+      createdAt: new Date(),
+      user: BOT_USER,
+    };
+
+    setMessages((previousMessages) => [...previousMessages, botMessage]);
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
+
+  const sendMessage = useCallback(async (inputText?: string) => {
+    const trimmedDraft = (inputText ?? draft).trim();
 
     if (!trimmedDraft) {
       return;
@@ -103,21 +139,34 @@ export function ChatbotScreen() {
 
     setDraft("");
     setMessages((previousMessages) => [...previousMessages, userMessage]);
+    setIsTyping(true);
 
-    const botMessage: ChatMessage = {
-      _id: Date.now() + 1,
-      text: buildBotReply(trimmedDraft),
-      createdAt: new Date(),
-      user: BOT_USER,
-    };
+    try {
+      if (aiEnabled) {
+        const history = [...sortedMessages, userMessage].slice(-8).map((message) => ({
+          role: (message.user._id === PATIENT_USER._id ? "user" : "assistant") as "user" | "assistant",
+          content: message.text,
+        }));
 
-    setTimeout(() => {
-      setMessages((previousMessages) => [...previousMessages, botMessage]);
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToEnd({ animated: true });
-      });
-    }, 500);
-  }, [draft]);
+        const result = await requestOpenRouterChat([
+          { role: "system", content: AI_SYSTEM_PROMPT.trim() },
+          ...history,
+        ]);
+
+        setStatusLabel(`IA active · ${result.model}`);
+        pushBotMessage(result.content);
+      } else {
+        setStatusLabel("Mode local");
+        pushBotMessage(buildBotReply(trimmedDraft));
+      }
+    } catch (error) {
+      console.log("[ChatbotScreen] OpenRouter fallback:", error);
+      setStatusLabel("Mode local de secours");
+      pushBotMessage(buildBotReply(trimmedDraft));
+    } finally {
+      setIsTyping(false);
+    }
+  }, [aiEnabled, draft, pushBotMessage, sortedMessages]);
 
   return (
     <KeyboardAvoidingView
@@ -126,10 +175,27 @@ export function ChatbotScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
     >
       <View className="px-4 pb-3 pt-6">
-        <Text className="mb-1 text-xl font-bold text-white">Assistant de triage</Text>
-        <Text className="text-sm text-slate-400">
-          Chat frontend avec logique locale. Aucun backend necessaire pour cette premiere version.
-        </Text>
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="mb-1 text-xl font-bold text-white">Assistant de triage</Text>
+            <Text className="text-sm text-slate-400">Conversation medicale guidee, rapide et lisible.</Text>
+          </View>
+          <View className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1">
+            <Text className="text-xs text-cyan-100">{statusLabel}</Text>
+          </View>
+        </View>
+
+        <View className="mt-4 flex-row flex-wrap gap-2">
+          {QUICK_PROMPTS.map((prompt) => (
+            <Pressable
+              key={prompt}
+              className="rounded-full border border-white/10 bg-[#0f1722] px-3 py-2"
+              onPress={() => sendMessage(prompt)}
+            >
+              <Text className="text-xs text-slate-200">{prompt}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <FlatList
@@ -158,6 +224,16 @@ export function ChatbotScreen() {
             </View>
           );
         }}
+        ListFooterComponent={
+          isTyping ? (
+            <View className="mt-2 flex-row items-center gap-3 px-1">
+              <View className="rounded-full border border-cyan-400/20 bg-[#12202e] px-4 py-3">
+                <ActivityIndicator color="#67e8f9" />
+              </View>
+              <Text className="text-sm text-slate-400">Analyse en cours...</Text>
+            </View>
+          ) : null
+        }
       />
 
       <View className="mx-3 mb-3 mt-2 flex-row items-end rounded-3xl border border-slate-800 bg-[#0f1722] px-3 py-2">
@@ -168,11 +244,13 @@ export function ChatbotScreen() {
           value={draft}
           multiline
           onChangeText={setDraft}
+          editable={!isTyping}
         />
         <TouchableOpacity
-          className="mb-1 ml-2 rounded-full bg-red-600 p-3"
+          className={`mb-1 ml-2 rounded-full p-3 ${isTyping ? "bg-slate-700" : "bg-red-600"}`}
           accessibilityRole="button"
-          onPress={onSend}
+          disabled={isTyping}
+          onPress={() => sendMessage()}
         >
           <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
