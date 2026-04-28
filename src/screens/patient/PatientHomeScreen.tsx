@@ -71,7 +71,7 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
         <Text className="text-xs uppercase tracking-[2px] text-red-300">Urgence en 2 tapes</Text>
         <Text className="mt-2 text-2xl font-bold text-white">Alerte immediate</Text>
         <Text className="mt-2 text-sm leading-6 text-slate-300">
-          Appuyez pour declencher une urgence, puis confirmez la demande d'ambulance.
+          Appuyez pour declencher une urgence, puis confirmez la demande dambulance.
         </Text>
         <View className="mt-5 gap-3">
           <AppButton label="Declencher une alerte" onPress={() => setAmbulanceRequested(true)} variant="danger" />
@@ -135,7 +135,7 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
       ) : null}
 
       <View className="mt-4 gap-3 pb-8">
-        <AppButton label="Ouvrir l'assistant de sante" onPress={openChatbot} variant="secondary" />
+        <AppButton label="Ouvrir lassistant de sante" onPress={openChatbot} variant="secondary" />
         <AppButton label="Demarrer un appel video" onPress={openVideoCall} />
       </View>
     </ScrollView>

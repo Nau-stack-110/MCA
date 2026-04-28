@@ -7,7 +7,7 @@ export function AmbulanceTrackingScreen() {
 
   return (
     <View className="flex-1 bg-[#070b12] px-4 pt-6">
-      <Text className="mb-1 text-xl font-bold text-white">Suivi de l'ambulance</Text>
+      <Text className="mb-1 text-xl font-bold text-white">Suivi de lambulance</Text>
       <Text className="mb-4 text-sm text-slate-400">Confirmation de demande, progression et equipe embarquee.</Text>
       <Card>
         <View className="flex-row items-center justify-between">

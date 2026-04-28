@@ -64,23 +64,6 @@ export function DoctorDashboardScreen({ openPatient }: Props) {
               ))}
             </Card>
 
-            <Card className="mb-4">
-              <Text className="text-base font-semibold text-white">Suivi des ambulances</Text>
-              {ambulanceFleet.map((ambulance) => (
-                <View key={ambulance.id} className="mt-3 rounded-2xl bg-[#0b1119] p-3">
-                  <View className="flex-row items-center justify-between">
-                    <View>
-                      <Text className="font-medium text-white">{ambulance.label}</Text>
-                      <Text className="text-slate-400">{ambulance.status}</Text>
-                    </View>
-                    <Text className="text-orange-300">{ambulance.eta}</Text>
-                  </View>
-                  <View className="mt-3 h-2 rounded-full bg-slate-800">
-                    <View className="h-2 rounded-full bg-orange-400" style={{ width: `${ambulance.progress}%` }} />
-                  </View>
-                </View>
-              ))}
-            </Card>
           </View>
         }
         renderItem={({ item }) => (

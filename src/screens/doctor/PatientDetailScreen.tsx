@@ -14,7 +14,7 @@ export function PatientDetailScreen({ patientId }: Props) {
   return (
     <View className="flex-1 bg-[#070b12] px-4 pt-6">
       <Text className="mb-1 text-xl font-bold text-white">Dossier patient</Text>
-      <Text className="mb-4 text-sm text-slate-400">Synthese clinique, urgence estimee et proposition d'action.</Text>
+      <Text className="mb-4 text-sm text-slate-400">Synthese clinique, urgence estimee et proposition daction.</Text>
       <Card>
         <View className="flex-row items-center justify-between">
           <Text className="text-lg font-semibold text-white">{patient.name}</Text>
