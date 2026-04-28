@@ -56,4 +56,6 @@ export type AmbulanceStatus = {
   eta: string;
   progress: number;
   crew: string;
+  phone: string;
+  distanceKm: number;
 };

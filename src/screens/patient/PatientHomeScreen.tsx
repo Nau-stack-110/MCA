@@ -31,14 +31,6 @@ const symptomChoices = [
   { id: "maux", label: "Maux de tete" },
 ];
 
-type Operator = "Telma" | "Orange" | "Airtel";
-
-const operatorCodes: Record<Operator, string> = {
-  Telma: "*147*911#",
-  Orange: "*303*911#",
-  Airtel: "*111*911#",
-};
-
 const ambulanceHotline = "+261340000911";
 
 export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
@@ -51,7 +43,6 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
   const [selectedHospital, setSelectedHospital] = useState<(typeof hospitals)[number] | null>(null);
   const [selectedAmbulance, setSelectedAmbulance] = useState<(typeof ambulanceFleet)[number] | null>(null);
   const [isSearchingEmergency, setIsSearchingEmergency] = useState(false);
-  const [selectedOperator, setSelectedOperator] = useState<Operator>("Telma");
   const [emergencyModalVisible, setEmergencyModalVisible] = useState(false);
 
   useEffect(() => {
@@ -125,24 +116,13 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
   };
 
   const callAmbulance = async () => {
-    const phoneUrl = Platform.OS === "ios" ? `telprompt:${ambulanceHotline}` : `tel:${ambulanceHotline}`;
+    const numberToCall = selectedAmbulance?.phone || ambulanceHotline;
+    const phoneUrl = Platform.OS === "ios" ? `telprompt:${numberToCall}` : `tel:${numberToCall}`;
 
     try {
       await Linking.openURL(phoneUrl);
     } catch {
       Alert.alert("Appel indisponible", "Testez sur un vrai telephone avec une application d'appel.");
-    }
-  };
-
-  const callWithOperatorUssd = async () => {
-    const ussdCode = operatorCodes[selectedOperator];
-    const sanitizedUssd = ussdCode.replace(/#/g, "%23");
-    const ussdUrl = `tel:${sanitizedUssd}`;
-
-    try {
-      await Linking.openURL(ussdUrl);
-    } catch {
-      Alert.alert("USSD indisponible", "Le code USSD fonctionne uniquement sur mobile reel avec carte SIM.");
     }
   };
 
@@ -295,33 +275,14 @@ export function PatientHomeScreen({ openChatbot, openVideoCall }: Props) {
                 <Text className="mt-2 text-sm font-semibold text-white">Hopital: {selectedHospital.name}</Text>
                 <Text className="mt-1 text-xs text-slate-300">Distance: {selectedHospital.distance} • ETA: {selectedHospital.eta || "N/A"}</Text>
                 <Text className="mt-1 text-xs text-slate-300">Ambulance: {selectedAmbulance.label} • {selectedAmbulance.eta}</Text>
-                <Text className="mt-1 text-xs text-slate-300">Numero: {ambulanceHotline}</Text>
+                <Text className="mt-1 text-xs text-slate-300">Numero: {selectedAmbulance.phone || ambulanceHotline}</Text>
 
-                <View className="mt-3 flex-row gap-2">
+                <View className="mt-3">
                   <Pressable onPress={callAmbulance} className="flex-1 flex-row items-center justify-center rounded-lg bg-emerald-600 px-3 py-3">
                     <Ionicons name="call" size={16} color="#ffffff" />
                     <Text className="ml-2 font-semibold text-white">Appeler</Text>
                   </Pressable>
-                  <Pressable onPress={callWithOperatorUssd} className="flex-1 items-center justify-center rounded-lg bg-slate-700 px-3 py-3">
-                    <Text className="font-semibold text-white">USSD</Text>
-                  </Pressable>
                 </View>
-
-                <View className="mt-3 flex-row gap-2">
-                  {(["Telma", "Orange", "Airtel"] as Operator[]).map((operator) => {
-                    const active = selectedOperator === operator;
-                    return (
-                      <Pressable
-                        key={operator}
-                        onPress={() => setSelectedOperator(operator)}
-                        className={`rounded-lg border px-3 py-2 ${active ? "border-cyan-300 bg-cyan-300/15" : "border-white/20 bg-transparent"}`}
-                      >
-                        <Text className={`${active ? "text-cyan-100" : "text-slate-200"}`}>{operator}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Text className="mt-2 text-xs text-slate-400">Code {selectedOperator}: {operatorCodes[selectedOperator]}</Text>
               </View>
             ) : null}
           </View>

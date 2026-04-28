@@ -128,6 +128,8 @@ export const ambulanceFleet: AmbulanceStatus[] = [
     eta: "4 min",
     progress: 72,
     crew: "Dr Rakoto - Paramedic Jo",
+    phone: "+261340000907",
+    distanceKm: 1.2,
   },
   {
     id: "a2",
@@ -136,5 +138,17 @@ export const ambulanceFleet: AmbulanceStatus[] = [
     eta: "8 min",
     progress: 28,
     crew: "Nurse Miora - EMT Faly",
+    phone: "+261340000911",
+    distanceKm: 2.6,
+  },
+  {
+    id: "a3",
+    label: "Ambulance 15",
+    status: "Disponible",
+    eta: "6 min",
+    progress: 0,
+    crew: "Dr Tiana - EMT Solo",
+    phone: "+261340000915",
+    distanceKm: 1.9,
   },
 ];
