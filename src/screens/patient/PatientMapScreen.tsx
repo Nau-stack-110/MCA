@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, Text, View } from "react-native";
-import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { Card } from "../../components/ui/Card";
 
 type Coordinates = {
@@ -106,13 +106,14 @@ export function PatientMapScreen() {
       const overpassEndpoints = [
         "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
       ];
 
       let overpassResponse: Response | null = null;
 
       for (const endpoint of overpassEndpoints) {
         try {
-          const response = await fetch(endpoint, {
+          let response = await fetch(endpoint, {
             method: "POST",
             headers: {
               Accept: "application/json",
@@ -120,6 +121,15 @@ export function PatientMapScreen() {
             },
             body: `data=${encodeURIComponent(overpassQuery)}`,
           });
+
+          if (!response.ok) {
+            response = await fetch(`${endpoint}?data=${encodeURIComponent(overpassQuery)}`, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+            });
+          }
 
           console.log("[PatientMapScreen] Overpass status:", response.status, endpoint);
 
@@ -255,7 +265,7 @@ export function PatientMapScreen() {
     <View className="flex-1 bg-[#070b12] px-4 pt-6">
       <Text className="mb-1 text-xl font-bold text-white">Carte intelligente</Text>
       <Text className="mb-4 text-sm text-slate-400">
-        OpenStreetMap, Overpass et OSRM pour trouver lhopital le plus proche sans Google Directions.
+        Carte native + Overpass + OSRM pour trouver lhopital le plus proche.
       </Text>
 
       <Card className="mb-4">
@@ -285,12 +295,6 @@ export function PatientMapScreen() {
               showsCompass={false}
               toolbarEnabled={false}
             >
-              <UrlTile
-                urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                maximumZ={19}
-                flipY={false}
-              />
-
               {userLocation ? (
                 <Marker
                   coordinate={userLocation}
