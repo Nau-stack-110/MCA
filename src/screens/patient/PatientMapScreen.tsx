@@ -103,16 +103,39 @@ export function PatientMapScreen() {
         out center tags;
       `;
 
-      const overpassResponse = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: overpassQuery,
-      });
-      console.log("[PatientMapScreen] Overpass status:", overpassResponse.status);
+      const overpassEndpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+      ];
 
-      if (!overpassResponse.ok) {
+      let overpassResponse: Response | null = null;
+
+      for (const endpoint of overpassEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            },
+            body: `data=${encodeURIComponent(overpassQuery)}`,
+          });
+
+          console.log("[PatientMapScreen] Overpass status:", response.status, endpoint);
+
+          if (response.ok) {
+            overpassResponse = response;
+            break;
+          }
+
+          const errorText = (await response.text()).slice(0, 180);
+          console.log("[PatientMapScreen] Overpass response body:", errorText);
+        } catch (requestError) {
+          console.log("[PatientMapScreen] Overpass request error:", requestError);
+        }
+      }
+
+      if (!overpassResponse) {
         throw new Error("overpass_failed");
       }
 
