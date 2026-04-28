@@ -19,8 +19,10 @@ type OpenRouterResponse = {
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 function getOpenRouterConfig() {
-  const apiKey = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY?.trim();
-  const model = process.env.EXPO_PUBLIC_OPENROUTER_MODEL?.trim() || "openrouter/free";
+  const rawApiKey = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY?.trim();
+  const apiKey = rawApiKey?.replace(/^['\"]|['\"]$/g, "");
+  const model =
+    process.env.EXPO_PUBLIC_OPENROUTER_MODEL?.trim() || "meta-llama/llama-3.1-8b-instruct:free";
   const appTitle = process.env.EXPO_PUBLIC_OPENROUTER_APP_TITLE?.trim() || "MADA-CARE";
   const referer = process.env.EXPO_PUBLIC_OPENROUTER_REFERER?.trim() || "https://mada-care.local";
 
@@ -59,10 +61,16 @@ export async function requestOpenRouterChat(messages: ChatMessagePayload[]) {
     }),
   });
 
-  const data = (await response.json()) as OpenRouterResponse;
+  let data: OpenRouterResponse = {};
+
+  try {
+    data = (await response.json()) as OpenRouterResponse;
+  } catch {
+    throw new Error(`OpenRouter error HTTP ${response.status}`);
+  }
 
   if (!response.ok) {
-    throw new Error(data.error?.message || "La requete OpenRouter a echoue.");
+    throw new Error(data.error?.message || `La requete OpenRouter a echoue (HTTP ${response.status}).`);
   }
 
   const content = data.choices?.[0]?.message?.content?.trim();
