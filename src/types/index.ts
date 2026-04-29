@@ -1,5 +1,22 @@
 export type Severity = "low" | "medium" | "critical";
 
+export type AiReviewStatus = "pending" | "approved" | "rejected";
+
+export type TriageCase = {
+  id: string;
+  patientName: string;
+  age?: number;
+  symptoms: string;
+  severity: Severity;
+  aiProposal: string;
+  status: AiReviewStatus;
+  createdAt: string;
+  reviewedAt?: string;
+  doctorDecision?: string;
+  location?: string;
+  waitingTime?: string;
+};
+
 export type AiResult = {
   severity: Severity;
   suggestedAction: string;

@@ -4,7 +4,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { hasOpenRouterKey, requestOpenRouterChat } from "../../services/openRouter";
+import { Severity } from "../../types";
 
 type ChatUser = {
   _id: number;
@@ -39,12 +39,13 @@ const AI_SYSTEM_PROMPT = `
 Tu es MADA-CARE, un assistant médical conversationnel.
 
 OBJECTIF :
-Discuter avec le patient pour comprendre ses symptômes et donner une orientation médicale.
+Discuter avec le patient pour comprendre ses symptômes et donner une orientation médicale avec des conseils de secours si nécessaire.
 
 COMPORTEMENT :
 - Analyse les symptômes
 - Pose UNE question si nécessaire
 - Donne une recommandation claire si possible
+- Si pertinent, proposer une ordonnance de secours simple et prudente
 
 STYLE :
 - Français naturel
@@ -64,7 +65,7 @@ INTERDIT :
 - Pas de texte long
 `;
 
-function detectSeverity(text: string) {
+function detectSeverity(text: string): Severity {
   const t = text.toLowerCase();
 
   if (
@@ -85,10 +86,7 @@ function detectSeverity(text: string) {
 
 function formatReply(text: string) {
   const clean = text.replace(/\s+/g, " ").trim();
-
-  const sentences =
-    clean.match(/[^.!?]+[.!?]?/g)?.map((s) => s.trim()) ?? [];
-
+  const sentences = clean.match(/[^.!?]+[.!?]?/g)?.map((s) => s.trim()) ?? [];
   return sentences.slice(0, 3).join(" ");
 }
 
@@ -144,14 +142,12 @@ export function ChatbotScreen() {
 
     const severity = detectSeverity(text);
 
-    // 🚨 sécurité urgence
     if (severity === "critical") {
       pushBotMessage("Cela peut être grave, rendez-vous immédiatement aux urgences.");
       setIsTyping(false);
       return;
     }
 
-    // 💬 message trop court → poser question
     if (text.length < 8) {
       pushBotMessage("Pouvez-vous préciser vos symptômes ?");
       setIsTyping(false);
@@ -174,10 +170,12 @@ export function ChatbotScreen() {
 
         pushBotMessage(formatReply(result.content));
       } else {
-        pushBotMessage("Veuillez consulter un professionnel de santé pour une évaluation.");
+        pushBotMessage("Paracetamol 500 mg si fievre ou douleur legere, repos et hydratation. Consultez rapidement si aggravation.");
       }
-    } catch (e) {
-      pushBotMessage("Une erreur est survenue, veuillez réessayer.");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+      console.log("[ChatbotScreen] OpenRouter error:", errorMessage);
+      pushBotMessage("Service IA indisponible. Ordonnance de secours: paracetamol 500 mg si besoin, hydratation, repos, et urgence si aggravation.");
     } finally {
       setIsTyping(false);
     }
