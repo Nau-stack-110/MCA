@@ -189,10 +189,12 @@ export function ChatbotScreen() {
           {QUICK_PROMPTS.map((prompt) => (
             <Pressable
               key={prompt}
-              className="rounded-full border border-white/10 bg-[#0f1722] px-3 py-2"
+              className="rounded-full border border-white/10 bg-[#0f1722] px-2.5 py-1.5 active:bg-[#1e293b]"
+              android_ripple={{ color: "rgba(148,163,184,0.2)", borderless: false }}
+              disabled={isTyping}
               onPress={() => sendMessage(prompt)}
             >
-              <Text className="text-xs text-slate-200">{prompt}</Text>
+              <Text className="text-[12px] font-medium leading-4 text-slate-100">{prompt}</Text>
             </Pressable>
           ))}
         </View>
@@ -247,12 +249,14 @@ export function ChatbotScreen() {
           editable={!isTyping}
         />
         <TouchableOpacity
-          className={`mb-1 ml-2 rounded-full p-3 ${isTyping ? "bg-slate-700" : "bg-red-600"}`}
+          className={`mb-1 ml-2 rounded-full p-2.5 ${isTyping ? "bg-slate-700" : "bg-red-600 active:bg-red-500"}`}
           accessibilityRole="button"
+          accessibilityLabel="Envoyer le message"
+          accessibilityHint="Appuyez pour envoyer votre texte au chatbot"
           disabled={isTyping}
           onPress={() => sendMessage()}
         >
-          <Ionicons name="send" size={18} color="#fff" />
+          <Ionicons name="send" size={17} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
