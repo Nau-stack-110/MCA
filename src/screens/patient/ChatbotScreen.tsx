@@ -30,10 +30,12 @@ type ChatMessage = {
 
 const AI_SYSTEM_PROMPT = `
 Tu es MADA-CARE, un assistant de pre-triage medical francophone.
-Tu reponds avec empathie, clarte et concision.
-Tu n'inventes jamais un diagnostic certain.
-Si les symptomes evoquent une urgence vitale, demande immediatement d'appeler les urgences ou de consulter sans attendre.
-Structure les reponses en phrases courtes, facilement lisibles sur mobile.
+Tu reponds toujours en francais naturel, humain et professionnel, comme un medecin prudent.
+Tu n'inventes jamais un diagnostic certain, tu donnes une orientation medicale breve selon les symptomes du patient.
+Reponse tres courte: une seule phrase prioritaire, deux phrases maximum uniquement si indispensable.
+Chaque phrase doit etre simple, claire, concrete et facile a lire sur mobile.
+Si les symptomes evoquent une urgence vitale, dis immediatement d'appeler les urgences ou de consulter sans attendre.
+N'utilise ni liste, ni titre, ni texte long.
 `;
 
 const QUICK_PROMPTS = [
@@ -85,6 +87,31 @@ function buildBotReply(text: string) {
     severity === "critical" ? "Critique" : severity === "medium" ? "Urgent" : "Normal";
 
   return `Niveau evalue: ${statusLabel}\nAction prioritaire: ${guidance.action}\nOrientation suggeree: ${guidance.specialty}\nSi les symptomes s'aggravent, contactez rapidement un professionnel de sante.`;
+}
+
+function formatShortMedicalReply(text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+
+  if (!clean) {
+    return "Je vous conseille une evaluation medicale rapide selon vos symptomes.";
+  }
+
+  const sentenceMatches = clean.match(/[^.!?]+[.!?]?/g)?.map((item) => item.trim()).filter(Boolean) ?? [];
+  const limitedSentences = sentenceMatches.slice(0, 2);
+  let result = limitedSentences.join(" ").trim();
+
+  if (!result) {
+    result = clean;
+  }
+
+  const wordCap = 28;
+  const words = result.split(" ");
+
+  if (words.length > wordCap) {
+    result = `${words.slice(0, wordCap).join(" ").replace(/[.,;:!?-]+$/, "")}.`;
+  }
+
+  return result;
 }
 
 export function ChatbotScreen() {
@@ -154,7 +181,7 @@ export function ChatbotScreen() {
         ]);
 
         setStatusLabel(`IA active · ${result.model}`);
-        pushBotMessage(result.content);
+        pushBotMessage(formatShortMedicalReply(result.content));
       } else {
         setStatusLabel("Mode local");
         pushBotMessage(buildBotReply(trimmedDraft));
